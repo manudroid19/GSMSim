@@ -840,7 +840,9 @@ String GSMSimHTTP::postWithSSLData(String url, String data, String contentType) 
 										_readSerial(3000);
 										if (_buffer.indexOf(F("+HTTPACTION: 1,")) != -1) {
 											String kod = _buffer.substring(_buffer.indexOf(F(","))+1, _buffer.lastIndexOf(F(",")));
+											String uzunluk = _buffer.substring(_buffer.lastIndexOf(F(","))+1);
 											kod.trim();
+											uzunluk.trim();
 
 											gsm.print(F("AT+HTTPREAD\r"));
 											_readSerial(30000);
@@ -850,12 +852,12 @@ String GSMSimHTTP::postWithSSLData(String url, String data, String contentType) 
 											if (_buffer.indexOf(F("+HTTPREAD:")) != -1) {
 												String kriter = "+HTTPREAD: " + uzunluk;
 												String veri = _buffer.substring(_buffer.indexOf(kriter) + kriter.length(), _buffer.lastIndexOf(F("OK")));
+												veri.trim();
 												okuma = kod+'|'+veri;
 											}
 											else {
 												return "ERROR:HTTP_READ_ERROR";
 											}
-											okuma.trim();
 											gsm.print(F("AT+HTTPTERM\r"));
 											_readSerial();
 
