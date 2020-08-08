@@ -95,6 +95,8 @@ class GSMSimHTTP : public GSMSimGPRS {
     String postWithSSL(String url, String data, String contentType);
     // HTTPS Post
     String postWithSSL(String url, String data, String contentType, bool read);
+    // HTTPS Post
+    String postWithSSLData(String url, String data, String contentType);
 
     // PING Komutları
     String ping(String address);
