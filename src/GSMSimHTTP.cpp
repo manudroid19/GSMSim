@@ -792,6 +792,107 @@ String GSMSimHTTP::postWithSSL(String url, String data, String contentType, bool
 	}
 }
 
+String GSMSimHTTP::postWithSSLData(String url, String data, String contentType) {
+	// önce internet bağlı olsun...
+	if(isConnected()) {
+		// Terminate http connection, if it opened before!
+		gsm.print(F("AT+HTTPTERM\r"));
+		_readSerial();
+
+		// şimdi başlıyoruz...
+		gsm.print(F("AT+HTTPINIT\r\n"));
+		_readSerial();
+		if (_buffer.indexOf(F("OK")) != -1) {
+			// init tamam şimdi parametreleri girelim...
+			gsm.print(F("AT+HTTPPARA=\"CID\",1\r"));
+			_readSerial();
+			if (_buffer.indexOf(F("OK")) != -1) {
+				gsm.print(F("AT+HTTPPARA=\"URL\",\""));
+				gsm.print(url);
+				gsm.print(F("\"\r"));
+				_readSerial();
+				if (_buffer.indexOf(F("OK")) != -1) {
+					gsm.print(F("AT+HTTPPARA=\"CONTENT\",\""));
+					gsm.print(contentType);
+					gsm.print(F("\"\r"));
+					_readSerial();
+					if (_buffer.indexOf(F("OK")) != -1) {
+						gsm.print("AT+HTTPSSL=1\r");
+						_readSerial();
+						if(_buffer.indexOf(F("OK")) != -1) {
+							// download modunu açalım
+							// veri uzunluğunu bulalım
+							unsigned int length = data.length();
+							gsm.print(F("AT+HTTPDATA="));
+							gsm.print(length);
+							gsm.print(F(","));
+							gsm.print(30000);
+							gsm.print("\r");
+							_readSerial(30000);
+							if (_buffer.indexOf(F("DOWNLOAD")) != -1) {
+								gsm.print(data);
+								gsm.print(F("\r"));
+								_readSerial(30000);
+								if (_buffer.indexOf(F("OK")) != -1) {
+									gsm.print(F("AT+HTTPACTION=1\r"));
+									_readSerial();
+									if (_buffer.indexOf(F("OK")) != -1) {
+										_readSerial(3000);
+										if (_buffer.indexOf(F("+HTTPACTION: 1,")) != -1) {
+											String kod = _buffer.substring(_buffer.indexOf(F(","))+1, _buffer.lastIndexOf(F(",")));
+											kod.trim();
+
+											gsm.print(F("AT+HTTPREAD\r"));
+											_readSerial(30000);
+
+											String okuma = "";
+
+											if (_buffer.indexOf(F("+HTTPREAD:")) != -1) {
+												String kriter = "+HTTPREAD: " + uzunluk;
+												String veri = _buffer.substring(_buffer.indexOf(kriter) + kriter.length(), _buffer.lastIndexOf(F("OK")));
+												okuma = kod+'|'+veri;
+											}
+											else {
+												return "ERROR:HTTP_READ_ERROR";
+											}
+											okuma.trim();
+											gsm.print(F("AT+HTTPTERM\r"));
+											_readSerial();
+
+											return okuma;
+										}
+										else {
+											return "HTTP_ACTION_READ_ERROR";
+										}
+									} else {
+										return "ERROR:HTTP_ACTION_ERROR";
+									}
+								} else {
+									return "ERROR:HTTP_DATADOWNLOAD_ERROR";
+								}
+							} else {
+								return "ERROR:HTTP_DATA_ERROR";
+							}
+						} else {
+							return "ERROR:HTTP_SSL_ERROR";
+						}
+					}else {
+						return "ERROR:HTTP_PARAMETER_ERROR";
+					}
+				} else {
+					return "ERROR:HTTP_PARAMETER_ERROR";
+				}
+			} else {
+				return "ERROR:HTTP_PARAMETER_ERROR";
+			}
+		} else {
+			return "ERROR:HTTP_INIT_ERROR";
+		}
+	} else {
+		return "ERROR:GPRS_NOT_CONNECTED";
+	}
+}
+
 // Ping to any server. It returns raw value. It still experiment.
 String GSMSimHTTP::ping(String address) {
 	if(isConnected()) {
